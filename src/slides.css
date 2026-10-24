@@ -1,0 +1,207 @@
+/* Canvas, layouts, typography, code palette, transition state classes. No app chrome:
+   this file is inlined into the exported HTML unchanged. Colors/fonts come from CSS variables
+   (set by useApplyTheme live, by a :root block in the export). The values below are the defaults. */
+
+:root {
+  --slide-w: 1920px; --slide-h: 1080px;
+  --slide-bg: #1b1e2b; --deck-bg: #14161f; --text: #e6e8f0; --accent: #8b7cff; --code-bg: #0e1018;
+  --font-heading: 'Inter', system-ui, sans-serif; --font-body: 'Inter', system-ui, sans-serif; --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --font-size: 44px; --line-height: 1.45; --letter-spacing: 0em;
+  --h1-size: 2.135em; --h2-size: 1.5625em; --h3-size: 1.25em; --h4-size: 1.118em;
+  --slide-pad: 96px; --slide-max: 1600px;
+  --tr-speed: 400ms; --tr-ease: ease;
+  --bg-layer: none; --bg-size: cover; --bg-repeat: no-repeat; --bg-blur: 0px; --bg-sat: 1; --bg-dark: 0; --bg-scale: 1;
+  --ambient: .5; --crt: .4; --breath-dur: 5s; --hue-dur: 60s; --frost-size: 16px;
+  /* code palette: One Dark */
+  --hl-fg: #abb2bf; --hl-comment: #5c6370; --hl-keyword: #c678dd; --hl-string: #98c379; --hl-number: #d19a66;
+  --hl-title: #61afef; --hl-built: #e5c07b; --hl-var: #e06c75; --hl-meta: #56b6c2;
+}
+
+/* ---------- deck frame ---------- */
+.deck { position: relative; width: 100%; height: 100%; overflow: hidden; background: var(--deck-bg); outline: none; touch-action: pan-y; }
+/* the theme background (gradient / image) also fills the frame around the slide, blurred and darker */
+.deck::before { content: ''; position: absolute; inset: -6%; z-index: 0; pointer-events: none;
+  background-image: linear-gradient(rgba(0,0,0,calc(var(--bg-dark) * .55)), rgba(0,0,0,calc(var(--bg-dark) * .55))), var(--bg-layer);
+  background-size: var(--bg-size); background-repeat: var(--bg-repeat); background-position: center;
+  filter: blur(calc(var(--bg-blur) + 28px)) saturate(var(--bg-sat)); }
+.deck-stage { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 1; }
+.deck-canvas { position: absolute; left: 0; top: 0; width: var(--slide-w); height: var(--slide-h); transform-origin: 0 0; overflow: hidden; }
+.deck-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; z-index: 5; background: color-mix(in srgb, var(--text) 10%, transparent); }
+.deck-progress > i { display: block; height: 100%; background: var(--accent); transition: width .3s ease; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+.deck.no-tr .slide { transition: none !important; }
+
+/* ---------- one slide: is-before / is-active / is-after drive the transition ----------
+   Deck.tsx puts the target slide's transition on every mounted slide (data-tr), so entering and leaving slides agree.
+   "after" = not shown yet (forward), "before" = already shown. Going back swaps the roles, so every transition is direction-aware. */
+.slide {
+  position: absolute; inset: 0; overflow: hidden;
+  background: var(--slide-bg); color: var(--text);
+  font-family: var(--font-body); font-size: var(--font-size); line-height: var(--line-height); letter-spacing: var(--letter-spacing);
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--tr-speed) var(--tr-ease), transform var(--tr-speed) var(--tr-ease), visibility 0s linear var(--tr-speed);
+}
+.slide.is-active { opacity: 1; visibility: visible; pointer-events: auto; transform: none; transition: opacity var(--tr-speed) var(--tr-ease), transform var(--tr-speed) var(--tr-ease), visibility 0s; }
+.slide[data-tr="none"], .slide[data-tr="none"].is-active { transition: none; }
+.slide[data-tr="slide-left"].is-after  { transform: translateX(100%);  opacity: 1; }
+.slide[data-tr="slide-left"].is-before { transform: translateX(-100%); opacity: 1; }
+.slide[data-tr="slide-right"].is-after  { transform: translateX(-100%); opacity: 1; }
+.slide[data-tr="slide-right"].is-before { transform: translateX(100%);  opacity: 1; }
+.slide[data-tr="slide-up"].is-after  { transform: translateY(100%);  opacity: 1; }
+.slide[data-tr="slide-up"].is-before { transform: translateY(-100%); opacity: 1; }
+.slide[data-tr="zoom"].is-after  { transform: scale(.82); }
+.slide[data-tr="zoom"].is-before { transform: scale(1.18); }
+.slide[data-tr="flip"] { backface-visibility: hidden; }
+.slide[data-tr="flip"].is-after  { transform: perspective(2600px) rotateY(-100deg); }
+.slide[data-tr="flip"].is-before { transform: perspective(2600px) rotateY(100deg); }
+.slide[data-tr="flip"].is-active { transform: perspective(2600px) rotateY(0); }
+.slide.small { font-size: calc(var(--font-size) * .85); }
+.slide.big { font-size: calc(var(--font-size) * 1.25); }
+
+/* theme background: gradient / image / blur / darken / saturate / mode, all from CSS variables */
+.slide-theme-bg { position: absolute; inset: 0; z-index: 0; background-image: var(--bg-layer); background-size: var(--bg-size); background-repeat: var(--bg-repeat); background-position: center;
+  filter: blur(var(--bg-blur)) saturate(var(--bg-sat)); transform: scale(var(--bg-scale)); }
+.slide-theme-bg::after { content: ''; position: absolute; inset: 0; background: rgba(0,0,0,var(--bg-dark)); }
+.slide-bg { position: absolute; inset: 0; z-index: 0; }
+.slide-bg-img { position: absolute; inset: 0; z-index: 0; background-size: cover; background-position: center; }
+.slide-bg-img::after { content: ''; position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.7), rgba(0,0,0,.05) 60%); }
+.slide-content { position: relative; z-index: 1; width: 100%; height: 100%; box-sizing: border-box; padding: var(--slide-pad); display: flex; flex-direction: column; overflow: hidden; }
+/* margin:auto centres when there is room and collapses to top-aligned (clipped) when there is not */
+.slide-body { margin: auto; width: 100%; max-width: var(--slide-max); }
+.col { min-width: 0; }
+.col > :first-child { margin-top: 0; }
+.col > :last-child { margin-bottom: 0; }
+
+/* ---------- layouts ---------- */
+.layout-center .slide-body { text-align: center; }
+.layout-center .col ul, .layout-center .col ol, .layout-center .col blockquote { width: fit-content; margin-inline: auto; text-align: left; }
+.layout-center .col pre, .layout-center .col table { text-align: left; margin-inline: auto; }
+.layout-top .slide-body { margin: 0 auto auto; text-align: left; }
+.layout-split .slide-body { text-align: left; }
+.slide-body.cols { display: grid; grid-template-columns: 1fr 1fr; gap: calc(var(--slide-pad) * .8); align-items: center; }
+.deck-canvas[data-narrow] .slide-body.cols { grid-template-columns: 1fr; gap: .8em; align-items: start; }
+.layout-full { color: #fff; }
+.layout-full .slide-content { justify-content: flex-end; }
+.layout-full .slide-body { margin: auto auto 0; text-align: left; text-shadow: 0 2px 18px rgba(0,0,0,.55); }
+
+/* ---------- typography ---------- */
+.slide h1, .slide h2, .slide h3, .slide h4 { font-family: var(--font-heading); font-weight: 700; line-height: 1.15; letter-spacing: -.01em; margin: 0 0 .5em; }
+.slide h1 { font-size: var(--h1-size); }
+.slide h2 { font-size: var(--h2-size); }
+.slide h3 { font-size: var(--h3-size); }
+.slide h4 { font-size: var(--h4-size); }
+.slide p { margin: 0 0 .8em; }
+.slide a { color: var(--accent); text-underline-offset: .15em; }
+.slide ul, .slide ol { margin: 0 0 .8em; padding-left: 1.3em; }
+.slide li { margin: .25em 0; }
+.slide li > ul, .slide li > ol { margin: .2em 0 0; }
+.slide .contains-task-list, .slide .task-list-item { list-style: none; }
+.slide .contains-task-list { padding-left: 0; }
+.slide .task-list-item-checkbox { margin-right: .5em; accent-color: var(--accent); transform: scale(1.25); }
+.slide blockquote { margin: 0 0 .8em; padding: .1em 0 .1em .9em; border-left: 6px solid var(--accent); font-style: italic; color: color-mix(in srgb, var(--text) 82%, transparent); }
+.slide blockquote > :last-child { margin-bottom: 0; }
+.slide hr { border: 0; border-top: 2px solid color-mix(in srgb, var(--text) 20%, transparent); margin: 1em 0; }
+.slide code { font-family: var(--font-mono); font-size: .85em; background: var(--code-bg); padding: .08em .35em; border-radius: .25em; }
+.slide pre { margin: 0 0 1em; padding: .8em 1em; background: var(--code-bg); border-radius: 14px; font-size: .62em; line-height: 1.5; overflow: hidden; white-space: pre; text-align: left; }
+.slide pre code { background: none; padding: 0; font-size: inherit; }
+.slide table { border-collapse: collapse; margin: 0 0 .8em; font-size: .8em; max-width: 100%; }
+.slide th, .slide td { padding: .4em .9em; text-align: left; border-bottom: 1px solid color-mix(in srgb, var(--text) 18%, transparent); }
+.slide th { border-bottom-width: 2px; font-weight: 600; }
+.slide img { max-width: 100%; height: auto; vertical-align: middle; }
+.slide kbd { font-family: var(--font-mono); font-size: .8em; padding: .05em .4em; border-radius: .3em; background: var(--code-bg); border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); }
+.slide .footnotes { font-size: .55em; margin-top: 1.5em; opacity: .75; text-align: left; }
+.slide .footnotes-sep { display: none; }
+.slide .footnotes ol { padding-left: 1.2em; }
+.slide sup { line-height: 0; }
+
+/* utility classes for `{.class}` attributes */
+.slide .accent { color: var(--accent); }
+.slide .muted { opacity: .6; }
+.slide .rounded { border-radius: 20px; }
+.slide .circle { border-radius: 50%; }
+.slide .shadow { box-shadow: 0 20px 60px rgba(0,0,0,.45); }
+.slide .left { text-align: left; }
+.slide .center { text-align: center; }
+.slide .right { text-align: right; }
+.slide img.center { display: block; margin-inline: auto; }
+.slide img.right { display: block; margin-left: auto; }
+
+/* ---------- code palette (variables; useApplyTheme / the export set --hl-*) ---------- */
+.hljs { color: var(--hl-fg); }
+.hljs-comment, .hljs-quote { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-doctag, .hljs-formula { color: var(--hl-keyword); }
+.hljs-string, .hljs-regexp, .hljs-addition { color: var(--hl-string); }
+.hljs-number, .hljs-literal, .hljs-symbol, .hljs-bullet, .hljs-attr, .hljs-attribute { color: var(--hl-number); }
+.hljs-title, .hljs-section, .hljs-function { color: var(--hl-title); }
+.hljs-built_in, .hljs-type, .hljs-class .hljs-title, .hljs-title.class_ { color: var(--hl-built); }
+.hljs-name, .hljs-tag, .hljs-variable, .hljs-template-variable, .hljs-selector-id, .hljs-selector-class, .hljs-deletion { color: var(--hl-var); }
+.hljs-meta, .hljs-link { color: var(--hl-meta); }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: 700; }
+
+/* ---------- effects (classes on .deck, from the Theme Studio) ---------- */
+/* paper */
+.deck.fx-paper .slide::after { content: ''; position: absolute; inset: 0; z-index: 3; pointer-events: none; }
+.deck.paper-aged .slide::after { mix-blend-mode: multiply;
+  background-image: radial-gradient(ellipse at center, transparent 50%, rgba(120,80,30,.32) 100%),
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .25  0 0 0 0 .1  0 0 0 .4 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.deck.paper-linen .slide::after { mix-blend-mode: multiply;
+  background-image: repeating-linear-gradient(0deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, rgba(0,0,0,.06) 0 1px, transparent 1px 4px); }
+.deck.paper-grid .slide::after { background: linear-gradient(rgba(128,128,128,.2) 2px, transparent 2px) 0 0 / 54px 54px, linear-gradient(90deg, rgba(128,128,128,.2) 2px, transparent 2px) 0 0 / 54px 54px; }
+.deck.paper-dotted .slide::after { background: radial-gradient(rgba(128,128,128,.4) 2.5px, transparent 3px) 0 0 / 40px 40px; }
+/* CRT: scanlines, vignette, glow, flicker */
+.deck.fx-crt .slide::before { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,calc(var(--crt) * .5)) 0 2px, transparent 2px 5px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,calc(var(--crt) * .85)) 100%);
+  animation: crt-flick 5s steps(1) infinite; }
+.deck.fx-crt .slide-content { text-shadow: 0 0 calc(var(--crt) * 14px) color-mix(in srgb, var(--text) 60%, transparent); }
+@keyframes crt-flick { 0%, 100% { opacity: 1; } 47% { opacity: .92; } 50% { opacity: 1; } 83% { opacity: .95; } }
+/* ambient glow in the frame */
+.deck.fx-ambient::after { content: ''; position: absolute; inset: -20%; z-index: 0; pointer-events: none; opacity: var(--ambient);
+  background: radial-gradient(circle at 20% 30%, color-mix(in srgb, var(--accent) 60%, transparent), transparent 45%), radial-gradient(circle at 80% 72%, color-mix(in srgb, var(--accent) 30%, var(--text) 20%), transparent 42%);
+  animation: ambient-drift 22s ease-in-out infinite alternate; }
+@keyframes ambient-drift { from { transform: translate3d(-3%, -2%, 0) scale(1); } to { transform: translate3d(3%, 3%, 0) scale(1.12); } }
+/* breathing: a slow pulse of the slide content */
+.deck.fx-breathing .slide-content { animation: breathe var(--breath-dur) ease-in-out infinite; }
+@keyframes breathe { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.015); opacity: .94; } }
+/* hue shift: the background layers drift through the hue wheel (text stays readable) */
+.deck.fx-hue .slide-theme-bg { animation: hue-bg var(--hue-dur) linear infinite; }
+.deck.fx-hue .slide-bg, .deck.fx-hue .slide-bg-img, .deck.fx-hue::before, .deck.fx-hue::after { animation: hue-plain var(--hue-dur) linear infinite; }
+.deck.fx-hue::before { animation-name: hue-frame; }
+@keyframes hue-bg { from { filter: blur(var(--bg-blur)) saturate(var(--bg-sat)) hue-rotate(0deg); } to { filter: blur(var(--bg-blur)) saturate(var(--bg-sat)) hue-rotate(360deg); } }
+@keyframes hue-frame { from { filter: blur(calc(var(--bg-blur) + 28px)) saturate(var(--bg-sat)) hue-rotate(0deg); } to { filter: blur(calc(var(--bg-blur) + 28px)) saturate(var(--bg-sat)) hue-rotate(360deg); } }
+@keyframes hue-plain { from { filter: hue-rotate(0deg); } to { filter: hue-rotate(360deg); } }
+/* frosted edge: blurred glass ring around the slide */
+.deck.fx-frost .deck-stage::after { content: ''; position: absolute; inset: 0; z-index: 4; pointer-events: none; padding: var(--frost-size); box-sizing: border-box;
+  background: color-mix(in srgb, var(--slide-bg) 30%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
+/* slide shadow / border */
+.deck.fx-shadow .deck-stage { box-shadow: 0 24px 80px rgba(0,0,0,.55), 0 4px 16px rgba(0,0,0,.35); }
+.deck.fx-border .deck-stage { outline: 2px solid color-mix(in srgb, var(--accent) 55%, transparent); outline-offset: 0; }
+/* glass card behind the slide text */
+.deck.fx-glass .slide:not(.layout-full) .slide-body { padding: .7em 1.1em; border-radius: 28px; box-sizing: border-box;
+  background: color-mix(in srgb, var(--text) 7%, transparent); border: 1px solid color-mix(in srgb, var(--text) 16%, transparent);
+  backdrop-filter: blur(22px) saturate(140%); -webkit-backdrop-filter: blur(22px) saturate(140%); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+
+/* ---------- overview (shared by the app and the exported file) ---------- */
+.ov { position: absolute; inset: 0; z-index: 20; overflow: auto; box-sizing: border-box; padding: 24px; background: color-mix(in srgb, var(--deck-bg) 90%, transparent);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); color: var(--text); font-family: var(--font-body, system-ui); touch-action: pan-y; }
+.ov-grid { display: grid; grid-template-columns: repeat(var(--ov-cols, 3), calc(var(--ov-w) * 1px)); gap: 16px; justify-content: center; }
+.ov-thumb { position: relative; display: block; padding: 0; margin: 0; border: 0; background: none; cursor: pointer; text-align: left; font: inherit; color: inherit; border-radius: 10px; }
+.ov-view { position: relative; width: calc(var(--ov-w) * 1px); height: calc(var(--ov-w) * .5625px); overflow: hidden; border-radius: 8px; background: var(--slide-bg);
+  outline: 2px solid color-mix(in srgb, var(--text) 18%, transparent); outline-offset: 0; }
+.ov-canvas { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform: scale(var(--ov-s)); transform-origin: 0 0; pointer-events: none; }
+.ov-canvas .slide { transition: none !important; }
+.ov-thumb.sel .ov-view { outline: 4px solid var(--accent); }
+.ov-thumb.over .ov-view { outline: 4px dashed var(--accent); }
+.ov-thumb:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.ov-num { position: absolute; left: 8px; bottom: 8px; z-index: 2; font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 99px; background: rgba(0,0,0,.6); color: #fff; }
+.ov-hint { text-align: center; font-size: 12px; opacity: .6; margin: 0 0 12px; }
+
+/* ---------- reduced motion: instant cut ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .slide, .slide.is-active, .slide[data-tr] { transition: none; }
+  .deck-progress > i { transition: none; }
+  .deck *, .deck::before, .deck::after { animation: none !important; }
+}

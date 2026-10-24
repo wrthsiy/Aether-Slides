@@ -1,0 +1,113 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Copied from Aether. --bg-editor / --bg-preview are fallbacks until useApplyTheme sets them. */
+:root { --muted: color-mix(in srgb, var(--text) 55%, transparent); color-scheme: dark; --bg-editor: #14161f; --bg-preview: #1b1e2b; }
+:root:not(.dark) { color-scheme: light; }
+html, body, #root { height: 100%; margin: 0; }
+html, body { overflow: hidden; overscroll-behavior: none; }
+body { -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg-editor); color: var(--text); font-family: Inter, system-ui, sans-serif; }
+
+/* Glassmorphism */
+.glass {
+  background: color-mix(in srgb, var(--bg-preview) 62%, transparent);
+  backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+}
+.btn { padding: .3rem .65rem; border-radius: .6rem; font-size: .85rem; cursor: pointer; color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent); border: 1px solid transparent; transition: background .15s; }
+.btn:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+.btn.on { background: var(--accent); color: #fff; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:disabled:hover { background: color-mix(in srgb, var(--text) 8%, transparent); }
+.btn:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cm-editor { height: 100%; }
+
+/* Theme Studio: right slide-out on desktop, bottom sheet on mobile */
+.studio { position: fixed; z-index: 30; top: 3rem; right: 0; bottom: 1.75rem; width: 340px; overflow-y: auto;
+  padding: 1rem; transform: translateX(105%); transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.studio.open { transform: none; }
+.studio h3 { margin: 1rem 0 .3rem; font-weight: 700; font-size: .95rem; }
+/* Phone layout: Theme Studio becomes a bottom sheet (height/transform are set inline by ThemeStudio.tsx) */
+.sheet-handle { display: none; }
+@media (max-width: 768px), (pointer: coarse) and (max-height: 500px) {
+  .studio { top: auto; left: 0; right: 0; bottom: 0; width: auto; transform: translateY(105%); border-radius: 16px 16px 0 0; overscroll-behavior: contain; }
+  .sheet-handle { display: flex; justify-content: center; align-items: center; position: absolute; top: 0; left: 0; right: 0; z-index: 2; height: 28px; margin: 0;
+    touch-action: none; cursor: grab; background: transparent; }
+  .sheet-handle span { width: 44px; height: 5px; border-radius: 3px; background: color-mix(in srgb, var(--text) 35%, transparent); }
+}
+.fade-in { animation: pop .25s ease-out; }
+@keyframes pop { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ================= Mobile ================= */
+.bar-top { height: calc(3rem + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+.bar-bottom { height: calc(1.75rem + env(safe-area-inset-bottom, 0px)); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body.editing .bar-bottom { height: 1.75rem; padding-bottom: 0; } /* keyboard covers the home indicator */
+.swipe { touch-action: none; user-select: none; -webkit-user-select: none; }
+.more-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: flex; flex-direction: column; gap: .25rem; min-width: 14rem; padding: .5rem; border-radius: .9rem; }
+.more-menu .btn { text-align: left; }
+@media (pointer: coarse) {
+  .btn { min-height: 44px; min-width: 44px; }
+  input[type="range"] { height: 32px; }
+  input[type="color"] { min-width: 44px; min-height: 36px; }
+  select { min-height: 40px; }
+  input[type="checkbox"] { width: 22px; height: 22px; }
+}
+.cm-content { font-size: 14px; }
+@media (pointer: coarse) { .cm-content { font-size: 16px !important; } } /* iOS zooms into smaller text */
+
+/* Slides app only */
+.follow-chip { position: absolute; right: 10px; bottom: 10px; z-index: 5; }
+.warn-pop { position: absolute; right: 8px; bottom: calc(100% + 6px); z-index: 30; max-width: min(28rem, 92vw); max-height: 40vh; overflow: auto;
+  padding: .6rem .8rem; border-radius: .9rem; display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; }
+
+/* Reduced motion: no animation anywhere (the deck cuts instantly) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Theme Studio sections / primitives (Commit 2) ---------- */
+.studio-scroll { height: 100%; overflow-y: auto; padding: 1rem; overscroll-behavior: contain; box-sizing: border-box; }
+.sec { border-top: 1px solid color-mix(in srgb, var(--text) 12%, transparent); margin-top: .6rem; padding-top: .35rem; }
+.sec > summary { cursor: pointer; font-weight: 700; padding: .4rem 0; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+.sec > summary::after { content: '▸'; opacity: .6; transition: transform .15s; }
+.sec[open] > summary::after { transform: rotate(90deg); }
+.sec > summary::-webkit-details-marker { display: none; }
+.grp h3 { margin: .8rem 0 .2rem; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 700; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: .75rem; padding: .22rem 0; font-size: .85rem; }
+.row-l { flex: 0 0 auto; min-width: 7rem; }
+.row-l em { font-style: normal; color: var(--muted); margin-left: .4rem; font-size: .75rem; }
+.row input[type="range"] { flex: 1 1 auto; min-width: 0; accent-color: var(--accent); }
+.row input[type="color"] { width: 44px; height: 28px; padding: 0; border: 1px solid color-mix(in srgb, var(--text) 25%, transparent); border-radius: .4rem; background: none; cursor: pointer; }
+.row select, .row .txt { flex: 1 1 auto; min-width: 0; max-width: 11.5rem; padding: .25rem .4rem; border-radius: .5rem; font-size: .85rem; color: var(--text);
+  background: color-mix(in srgb, var(--text) 8%, transparent); border: 1px solid color-mix(in srgb, var(--text) 18%, transparent); }
+.row select option { color: #111; background: #fff; }
+.row-check { justify-content: flex-start; cursor: pointer; }
+.row-check input { accent-color: var(--accent); }
+.hint { font-size: .75rem; color: var(--muted); margin: .4rem 0 0; }
+.presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(6.2rem, 1fr)); gap: .4rem; margin-top: .3rem; }
+.preset { display: flex; align-items: center; gap: .4rem; padding: .5rem .55rem; border-radius: .6rem; font-size: .8rem; font-weight: 600; cursor: pointer; border: 2px solid transparent;
+  outline: 1px solid color-mix(in srgb, var(--text) 20%, transparent); text-align: left; }
+.preset i { width: .7rem; height: .7rem; border-radius: 50%; flex: 0 0 auto; }
+.preset.code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .7rem; font-weight: 500; flex-wrap: wrap; gap: .25rem; }
+.preset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- presenter window ---------- */
+.notes-md { line-height: 1.5; }
+.notes-md > :first-child { margin-top: 0; }
+.notes-md p, .notes-md ul, .notes-md ol, .notes-md blockquote, .notes-md pre { margin: 0 0 .7em; }
+.notes-md ul, .notes-md ol { padding-left: 1.3em; }
+.notes-md ul { list-style: disc; }
+.notes-md ol { list-style: decimal; }
+.notes-md h1, .notes-md h2, .notes-md h3 { font-weight: 700; margin: .6em 0 .3em; }
+.notes-md a { color: var(--accent); text-decoration: underline; }
+.notes-md code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: .9em; background: color-mix(in srgb, var(--text) 10%, transparent); padding: .05em .3em; border-radius: .25em; }
+.notes-md pre { padding: .6em .8em; border-radius: .5em; overflow: auto; background: color-mix(in srgb, var(--text) 8%, transparent); }
+.notes-md pre code { background: none; padding: 0; }
+.notes-md blockquote { border-left: 3px solid var(--accent); padding-left: .8em; opacity: .85; }
+.timer-big { font-variant-numeric: tabular-nums; font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.timer-over { color: #ff6b6b; }
+.toast { position: fixed; left: 50%; bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 60; max-width: min(34rem, 94vw);
+  padding: .6rem .9rem; border-radius: .9rem; font-size: .85rem; display: flex; flex-direction: column; gap: .3rem; }
